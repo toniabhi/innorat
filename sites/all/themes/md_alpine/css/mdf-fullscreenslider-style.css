@@ -1,0 +1,13 @@
+.mdf-arrow-left, .mdf-arrow-right {
+    width: 32px;
+    height: 60px;
+    background-size:  32px 60px;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+}
+.mdf-arrow-right {
+    background-image: url('../img/arrow_right.png');
+}
+.mdf-arrow-left {
+    background-image: url('../img/arrow_left.png');
+}

@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * HCL social login install file.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function hcl_social_login_install() {
+  db_query("UPDATE {system} SET weight = 2 WHERE name = 'hcl_social_login'");
+}

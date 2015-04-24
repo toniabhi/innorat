@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function hcl_bizographics_preprocess_html(&$variables) {
+  if(arg(0) != 'admin') {
+    $bizographics_code =
+    '<script type="text/javascript">
+      _bizo_data_partner_id = "5579";
+    </script>
+    <script type="text/javascript">
+    (function() {
+      var s = document.getElementsByTagName("script")[0];
+      var b = document.createElement("script");
+      b.type = "text/javascript";
+      b.async = true;
+      b.src = (window.location.protocol === "https:" ? "https://sjs" : "http://js") + ".bizographics.com/insight.min.js";
+      s.parentNode.insertBefore(b, s);
+    })();
+    </script>
+    <noscript>
+      <img height="1" width="1" alt="" style="display:none;" src="//www.bizographics.com/collect/?pid=5579&fmt=gif" />
+    </noscript>';
+    $variables['page']['page_bottom']['bizographics_code'] = array(
+      '#type' => 'markup',
+      '#markup' => $bizographics_code,
+    );
+  }
+}

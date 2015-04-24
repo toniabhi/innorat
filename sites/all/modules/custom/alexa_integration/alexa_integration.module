@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function alexa_integration_menu() {
+  $items = array();
+  $items['admin/config/search/alexa'] = array(
+    'title' => 'Alexa integration',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('add_alexa_code'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+function add_alexa_code($form, $form_state) {
+  $form = array();
+  $form['alexa_integration_atrk_account'] = array(
+    '#type' => 'textfield',
+    '#title' => t('ATRK Account'),
+    '#default_value' => variable_get('alexa_integration_atrk_account', ''),
+  );
+  $form['alexa_integration_domain'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Domain'),
+    '#default_value' => variable_get('alexa_integration_domain', ''),
+  );
+  $form['alexa_integration_account_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Account ID'),
+    '#default_value' => variable_get('alexa_integration_account_id', ''),
+  );
+
+  return system_settings_form($form);
+}
+
+function alexa_integration_process_html(&$vars) {
+  $atrk_acc = variable_get('alexa_integration_atrk_account', '');
+  $domain = variable_get('alexa_integration_domain', '');
+  $acc_id = variable_get('alexa_integration_account_id', '');
+  $inline_script = '
+    <!-- Start Alexa Certify Javascript -->
+    <script type="text/javascript">
+    _atrk_opts = { atrk_acct:"' . $atrk_acc . '", domain:"' . $domain . '",dynamic: true};
+    (function() { var as = document.createElement("script"); as.type = "text/javascript";
+      as.async = true; as.src = "https://d31qbv1cthcecs.cloudfront.net/atrk.js";
+      var s = document.getElementsByTagName("script")[0];s.parentNode.insertBefore(as, s); })();
+    </script>
+    <noscript><img src="https://d5nxst8fruw4z.cloudfront.net/atrk.gif?account=' . $acc_id . '"
+    style="display:none" height="1" width="1" alt="" /></noscript>
+    <!-- End Alexa Certify Javascript -->
+  ';
+  $element = array(
+    '#type' => 'markup',
+    '#markup' => $inline_script,
+  );
+  $alexa_js = drupal_render($element);
+  $vars['scripts'] = $alexa_js . $vars['scripts'];
+}
+
+

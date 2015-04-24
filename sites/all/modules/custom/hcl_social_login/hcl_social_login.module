@@ -1,0 +1,316 @@
+<?php
+
+/**
+ * @file
+ * Custom module for hcl user related functionalities.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function hcl_social_login_menu() {
+  $items['admin/config/people/hybridauth/add_to_form'] = array(
+    'title' => 'Add social login to form',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('hcl_social_login_add_to_form'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'hcl_social_login.page.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function hcl_social_login_form_alter(&$form, &$form_state, $form_id) {
+  // Using admin settings form, add social login widget to all forms as
+  // configured.
+  if (module_exists('hcl_social_login') && !user_is_logged_in()) {
+    $social_login_form_ids = variable_get('hcl_social_login_form_id', '');
+    $social_login_form_ids = explode("\n", $social_login_form_ids);
+    foreach ($social_login_form_ids as $social_login_form_id_single) {
+      if ($form_id == trim($social_login_form_id_single)) {
+        // If webform, add to submitted.
+        if (substr($social_login_form_id_single, 0, 20) == 'webform_client_form_') {
+          $hybridauth = _add_hybrid_authwidget();
+          $form['submitted'] += $hybridauth;
+          $form['submitted']['hybridauth_or'] = array(
+            '#markup' => '<div class="login-seperator"><span>' . t('OR') . '</span></div>',
+            '#weight' => -99,
+          );
+        }
+        else {
+          $hybridauth = _add_hybrid_authwidget();
+          $form += $hybridauth;
+          $form['hybridauth_or'] = array(
+            '#markup' => '<div class="login-seperator"><span>' . t('OR') . '</span></div>',
+            '#weight' => -99,
+          );
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Returns the linkedin adapter instance.
+ */
+function create_twitter_adapter() {
+  $twitter = new stdClass();
+  // Get the HybridAuth instance or exception code.
+  if ($hybridauth = hybridauth_get_instance()) {
+    try {
+      if ($hybridauth->isConnectedWith('Twitter')) {
+        // Get the twitter adapter instance.
+        $twitter = $hybridauth->getAdapter('Twitter');
+      }
+    }
+    catch (Exception $e) {
+      drupal_set_message(t("We got an error while trying to process the request."));
+      watchdog("hybridauth_get_instance-integration", 'An error occured: ' . $e->getMessage());
+    }
+  }
+
+  return $twitter;
+}
+
+/**
+ * Returns the linkedin adapter instance.
+ */
+function create_linkedin_adapter() {
+  $linkedin = new stdClass();
+  // Get the HybridAuth instance or exception code.
+  if ($hybridauth = hybridauth_get_instance()) {
+    try {
+      if ($hybridauth->isConnectedWith('LinkedIn')) {
+        // Get the linkedin adapter instance.
+        $linkedin = $hybridauth->getAdapter('LinkedIn');
+      }
+    }
+    catch (Exception $e) {
+      drupal_set_message(t("We got an error while trying to process the request."));
+      watchdog("hybridauth_get_instance-integration", 'An error occured: ' . $e->getMessage());
+    }
+  }
+
+  return $linkedin;
+}
+
+/**
+ * Returns the facebook adapter instance.
+ */
+function create_facebook_adapter() {
+  $facebook = new stdClass();
+  // Get the HybridAuth instance or exception code.
+  if ($hybridauth = hybridauth_get_instance()) {
+    try {
+      if ($hybridauth->isConnectedWith('Facebook')) {
+        // Get the facebook adapter instance.
+        $facebook = $hybridauth->getAdapter('Facebook');
+      }
+    }
+    catch (Exception $e) {
+      drupal_set_message(t("We got an error while trying to process the request."));
+      watchdog("hybridauth_get_instance-integration", 'An error occured: ' . $e->getMessage());
+    }
+  }
+
+  return $facebook;
+}
+
+
+/**
+ * Returns profile fields for the given profile id - linkedin.
+ */
+function get_linkedin_profile($id = '') {
+  $profile_arr = array();
+
+  // Get the linkedin adapter.
+  $linkedin = create_linkedin_adapter();
+  // We convert the object to array to check if its empty.
+  // If not empty we continue with the operations since we can now use the
+  // object to call the linkedin api.
+  $linkedin_arr = (array) $linkedin;
+  if (!empty($linkedin_arr)) {
+    // Call the linkedin api to fetch profile data for given $id else current
+    // logged in user.
+    if ($id == '') {
+      $user_profile = $linkedin->api()->profile('~:(first-name,last-name,headline,phone-numbers,public-profile-url,positions)');
+    }
+    else {
+      $user_profile = $linkedin->api()->profile('id=' . $id);
+    }
+    // If the call was successful then parse the data from the reurned array.
+    if (isset($user_profile['success']) && $user_profile['success']) {
+      // Parse the returned xml for required data.
+      $data = @ new SimpleXMLElement($user_profile['linkedin']);
+      if (!is_object($data)) {
+        drupal_set_message(t("User profile request failed!") . ' ' . $linkedin->providerId . ' ' . t("returned an invalid xml data."));
+        exit();
+      }
+      $profile_arr['first_name'] = (string) $data->{'first-name'};
+      $profile_arr['last_name'] = (string) $data->{'last-name'};
+      $profile_arr['bio'] = (string) $data->{'headline'};
+      $profile_arr['url'] = (string) $data->{'public-profile-url'};
+      $profile_arr['phone'] = isset($data->{'phone-numbers'}[0]->{'phone-number'}) ? (string) $data->{'phone-numbers'}[0]->{'phone-number'}->{'phone-number'} : '';
+      $profile_arr['designation'] = isset($data->{'positions'}[0]->{'position'}) ? (string) $data->{'positions'}[0]->{'position'}->{'title'} : '';
+      $profile_arr['organization'] = isset($data->{'positions'}[0]->{'position'}) ? (string) $data->{'positions'}[0]->{'position'}->{'company'}->{'name'} : '';
+    }
+  }
+  return $profile_arr;
+}
+
+/**
+ * Returns profile fields for the given profile id - facebook.
+ */
+function get_facebook_profile($id = '') {
+  $profile_arr = array();
+  // Get the facebook adapter.
+  $facebook = create_facebook_adapter();
+  $facebook_arr = (array) $facebook;
+  try {
+    $data = $facebook->api()->api('/me');
+  }
+  catch (FacebookApiException $e) {
+    throw new Exception("User profile request failed! error: $e", 6);
+  }
+
+  // If the provider identifier is not recived, we assume the auth has failed.
+  if (!isset($data["id"])) {
+    throw new Exception("User profile request failed! {$this->providerId} api returned an invalid response.", 6);
+  }
+
+  $profile_arr['first_name'] = isset($data['first_name']) ? $data['first_name'] : '';
+  $profile_arr['last_name'] = isset($data['last_name']) ? $data['last_name'] : '';
+  $profile_arr['bio'] = isset($data['bio']) ? $data['bio'] : '';
+  $profile_arr['url'] = isset($data['link']) ? $data['link'] : '';
+  if (isset($data['work'])) {
+    $work = current($data['work']);
+    $profile_arr['designation'] = isset($work['position']['name']) ? $work['position']['name'] : '';
+    $profile_arr['organization'] = isset($work['employer']['name']) ? $work['employer']['name'] : '';
+  }
+
+  return $profile_arr;
+}
+
+/**
+ * Returns profile fields for the given profile id - twitter.
+ */
+function get_twitter_profile($id = '') {
+  $profile_arr = array();
+  // Get the twitter adapter.
+  $twitter = create_twitter_adapter();
+  $twitter_arr = (array) $twitter;
+  $profile = $twitter->getUserProfile();
+  $profile_arr = (array) $profile;
+
+  // Change array keys before returning.
+  $profile_arr['first_name'] = $profile_arr['firstName'];
+  unset($profile_arr['firstName']);
+  $profile_arr['last_name'] = $profile_arr['lastName'];
+  unset($profile_arr['lastName']);
+  $profile_arr['bio'] = $profile_arr['description'];
+  unset($profile_arr['description']);
+  $profile_arr['url'] = $profile_arr['webSiteURL'];
+  unset($profile_arr['webSiteURL']);
+  return $profile_arr;
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function hcl_social_login_user_login(&$edit, $account) {
+  if (isset($account->data['hybridauth'])) {
+    switch ($account->data['hybridauth']['provider']) {
+      case 'LinkedIn':
+        $user_profile = get_linkedin_profile();
+        break;
+
+      case 'Facebook':
+        $user_profile = get_facebook_profile();
+        break;
+
+      case 'Twitter':
+        $user_profile = get_twitter_profile();
+        break;
+    }
+    $lang = empty($account->language) ? LANGUAGE_NONE : $account->language;
+    if (isset($user_profile['first_name']) && empty($account->field_user_first_name)) {
+      $account->field_user_firstname[$lang][0]['value'] = $user_profile['first_name'];
+    }
+    if (isset($user_profile['last_name']) && empty($account->field_user_last_name)) {
+      $account->field_user_lastname[$lang][0]['value'] = $user_profile['last_name'];
+    }
+    if (isset($user_profile['phone']) && empty($account->field_user_phone)) {
+      $account->field_user_phone[$lang][0]['value'] = $user_profile['phone'];
+    }
+    if (isset($user_profile['designation']) && empty($account->field_user_designation)) {
+      $account->field_user_job_title[$lang][0]['value'] = $user_profile['designation'];
+    }
+    if (isset($user_profile['organization']) && empty($account->field_user_organization)) {
+      $account->field_user_organization[$lang][0]['value'] = $user_profile['organization'];
+    }
+  }
+  user_save($account);
+
+  if (isset($_REQUEST['destination'])) {
+    $destination = token_replace($_REQUEST['destination'], array('user' => $account), array('clear' => TRUE));
+    $_REQUEST['destination'] = $destination;
+  }
+}
+
+/**
+ * Adds Hybridauth Social login links.
+ */
+function _add_hybrid_authwidget($form = array()) {
+  if (empty($form)) {
+    $form = array();
+  }
+  if (!user_is_logged_in() && user_access('use hybridauth')) {
+    $path = current_path();
+    $form['hybridauth'] = array(
+      '#type' => 'hybridauth_widget',
+      '#weight' => -100,
+      '#hybridauth_destination' => $path,
+    );
+  }
+  return $form;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function hcl_social_login_form_webform_component_edit_form_alter(&$form, &$form_state, $form_id) {
+  $output = $form['value']['#description'];
+  $token = array(
+    'title' => 'User Profile Tokens',
+    'tokens' => array(
+      '%first_name' => t("User's first name"),
+      '%last_name' => t("User's last name"),
+      '%full_name' => t("User's full name"),
+      '%designation' => t("User's designation"),
+      '%organization' => t("User's organization"),
+      '%phone' => t("User's phone"),
+    ),
+  );
+  foreach ($token as $group_name => $group) {
+    if (is_array($group)) {
+      $items = array();
+      foreach ($group as $name => $token_description) {
+        $items[] = $name . ' - ' . $token_description;
+      }
+      $output .= theme('item_list', array('items' => $items, 'title' => $token['title']));
+    }
+  }
+
+  $fieldset = array(
+    '#title' => t('Custom Tokens'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#children' => '<div>' . $output . '</div>',
+    '#attributes' => array('class' => array('collapsible', 'collapsed')),
+  );
+  $output = theme('fieldset', array('element' => $fieldset));
+  $form['value']['#description'] = $output;
+}

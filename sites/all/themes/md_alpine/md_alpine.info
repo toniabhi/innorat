@@ -1,0 +1,88 @@
+name = MD Alpine Theme
+description = MegaDrupal Theme
+core = 7.x
+engine = phptemplate
+
+settings[toggle_logo] = 1
+settings[toggle_name] = 1
+settings[toggle_slogan] = 1
+settings[toggle_node_user_picture] = 1
+settings[toggle_comment_user_picture] = 1
+settings[toggle_comment_user_verification] = 1
+settings[toggle_favicon] = 1
+settings[toggle_main_menu] = 1
+settings[toggle_secondary_menu] = 1
+settings[default_logo] = 1
+settings[default_favicon] = 1
+settings[css3_textarea] = 0
+settings[webclip_precomp] = 1
+settings[typo_heading_style_enable] = 0
+settings[nodetitle_enable] = 0
+settings[typo_view_title_enable] = 0
+settings[skins] = 'blu'
+settings[header_size] = 'full'
+settings[header_background_type] = 'video'
+settings[header_video_play] = 0
+settings[header_video_content_display] = 1
+settings[nf_background] = 'custom'
+settings[menu_sticky] = 1
+settings[menu_custom_enable] = 0
+settings[sidebar_position] = 'right'
+
+
+; Important Drupal regions
+
+regions[header] = Header
+
+regions[navigation] = Navigation
+
+regions[sidebar] = Sidebar
+
+regions[front_welcome_note] = Welcome Note [frontpage only]
+
+regions[about] = About
+
+regions[culture] = Culture
+
+regions[philanthropic] = Philanthropic
+
+regions[engagement] = Engagement
+
+regions[testimonial] = Testimonial
+
+regions[parallax_one] = Parallax One
+
+regions[service] = Service
+
+regions[parallax_two] = Parallax Two
+
+regions[portfolio] = Portfolio
+
+regions[parallax_three] = Parallax Three
+
+regions[team] = Team
+
+regions[parallax_four] = Parallax Four
+
+regions[client] = Client
+
+regions[parallax_five] = Parallax Five
+
+regions[pricing] = Pricing Table
+
+regions[parallax_six] = Parallax Six
+
+regions[blog] = Blog
+
+regions[parallax_seven] = Parallax Seven
+
+regions[contact] = Contact
+
+regions[content] = Main Page Content
+
+regions[footer] = Footer
+
+project status url = http://updates.megadrupal.com/release-history
+version = "7.x-2.6"
+core = "7.x"
+project = "md_alpine"

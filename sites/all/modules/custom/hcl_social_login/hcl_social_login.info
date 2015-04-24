@@ -1,0 +1,6 @@
+name = HCL Social Login
+description = Customizations for social login on hcl
+version = 7.x-1.0
+core = 7.x
+package = HCL custom modules
+dependencies[] = hybridauth

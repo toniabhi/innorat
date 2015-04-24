@@ -1,0 +1,5 @@
+name = HCL Apply Customizations
+description = Customizations for apply functionality.
+version = 7.x-1.0
+core = 7.x
+package = HCL custom modules

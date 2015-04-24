@@ -1,0 +1,9 @@
+name = MD Alpine
+description = Select this profile to install demo profile for MD Alpine theme.
+core = 7.x
+exclusive = 1
+dependencies[] = node
+files[] = mdalpine.profile
+
+version = "7.28"
+project = "drupal"

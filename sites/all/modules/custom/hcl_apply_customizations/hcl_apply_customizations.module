@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Custom module for apply functionality related functionalities.
+ */
+
+/**
+ * Implements hook_form_alter().
+ */
+function hcl_apply_customizations_form_alter(&$form, &$form_state, $form_id) {
+  if (substr($form_id, 0, 20) == 'webform_client_form_') {
+    switch ($form_id) {
+      case 'webform_client_form_101':
+      case 'webform_client_form_102':
+        if (isset($form['submitted']['phone'])) {
+          $phone_field = $form['submitted']['phone'];
+          $form['submitted']['phone']['#access'] = FALSE;
+          $form['submitted']['prefixed_phone'] = array(
+            '#type' => 'fieldset',
+            '#title' => $phone_field['#title'] . ' <span class="form-required" title="This field is required.">*</span>',
+            '#weight' => $phone_field['#weight'],
+            '#required' => $phone_field['#required'],
+            '#attributes' => array(
+              'class' => array('prefixed_phone'),
+            ),
+          );
+          $form['submitted']['prefixed_phone']['prefix'] = array(
+            '#type' => 'textfield',
+            '#default_value' => '0061',
+          );
+          $form['submitted']['prefixed_phone']['phone'] = $phone_field;
+
+          array_unshift($form['#submit'], 'prefixed_phone_submit');
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Custom submit handler for prefixed phone field in webform.
+ */
+function prefixed_phone_submit($form, &$form_state) {
+  if (isset($form_state['values']['submitted']['prefixed_phone']['prefix']) && isset($form_state['values']['submitted']['prefixed_phone']['phone'])) {
+    $form_state['values']['submitted']['phone'] = $form_state['values']['submitted']['prefixed_phone']['prefix'] . '-' . $form_state['values']['submitted']['prefixed_phone']['phone'];
+  }
+}

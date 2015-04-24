@@ -1,0 +1,10 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function hcl_google_analytics_install() {
+  if(module_exists('googleanalytics')) {
+    module_disable(array('googleanalytics'),TRUE);
+  }
+}

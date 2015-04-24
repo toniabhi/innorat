@@ -1,0 +1,3 @@
+name = HCL Google Analytics
+description = Google analytics code for hcltech.com as per the new ga code format
+core = 7.x
